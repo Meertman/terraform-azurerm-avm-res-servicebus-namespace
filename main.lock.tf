@@ -3,8 +3,8 @@ resource "azapi_resource" "lock" {
 
   name = coalesce(each.value.lock.name, "lock-${each.value.lock.kind}")
   parent_id = (
-    each.value.scope_type == local.private_endpoint_scope_type && var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this_managed_dns_zone_groups[each.value.pe_name].id :
-    each.value.scope_type == local.private_endpoint_scope_type ? azurerm_private_endpoint.this_unmanaged_dns_zone_groups[each.value.pe_name].id :
+    each.value.scope_type == local.private_endpoint_scope_type && var.private_endpoints_manage_dns_zone_group ? azapi_resource.private_endpoints[each.value.pe_name].id :
+    each.value.scope_type == local.private_endpoint_scope_type ? azapi_resource.private_endpoints_unmanaged_dns_zone_groups[each.value.pe_name].id :
     azurerm_servicebus_namespace.this.id
   )
   type = "Microsoft.Authorization/locks@2020-05-01"
@@ -46,8 +46,8 @@ resource "time_sleep" "lock_removal" {
     azurerm_servicebus_topic.this, azurerm_servicebus_topic_authorization_rule.this, azurerm_servicebus_subscription.base_topics, azurerm_servicebus_subscription.forward_topics,
 
     azapi_resource.diagnostic_settings, azapi_resource.role_assignments,
-    azurerm_private_endpoint_application_security_group_association.this,
-    azurerm_private_endpoint.this_managed_dns_zone_groups, azurerm_private_endpoint.this_unmanaged_dns_zone_groups
+    azapi_resource.private_dns_zone_groups,
+    azapi_resource.private_endpoints, azapi_resource.private_endpoints_unmanaged_dns_zone_groups
   ]
 }
 

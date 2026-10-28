@@ -45,12 +45,68 @@ output "resource_locks" {
 
 output "resource_private_endpoints" {
   description = "A map of the private endpoints created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint#attributes-reference"
-  value       = var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this_managed_dns_zone_groups : azurerm_private_endpoint.this_unmanaged_dns_zone_groups
+  # The AzureRM attribute names and shapes are kept so that references such as
+  # `private_service_connection[0].private_ip_address` keep working.
+  value = {
+    for key, endpoint in local.private_endpoint_resources : key => {
+      custom_dns_configs = [
+        for config in try(endpoint.output.properties.customDnsConfigs, []) : {
+          fqdn         = config.fqdn
+          ip_addresses = config.ipAddresses
+        }
+      ]
+      custom_network_interface_name = var.private_endpoints[key].network_interface_name
+      id                            = endpoint.id
+      ip_configuration = [
+        for ip_configuration in values(var.private_endpoints[key].ip_configurations) : {
+          member_name        = coalesce(ip_configuration.member_name, local.service_name)
+          name               = ip_configuration.name
+          private_ip_address = ip_configuration.private_ip_address
+          subresource_name   = coalesce(var.private_endpoints[key].subresource_name, local.service_name)
+        }
+      ]
+      location = endpoint.location
+      name     = endpoint.name
+      network_interface = [
+        for nic in try(endpoint.output.properties.networkInterfaces, []) : {
+          id   = nic.id
+          name = provider::azapi::parse_resource_id("Microsoft.Network/networkInterfaces", nic.id).name
+        }
+      ]
+      private_dns_zone_group = [
+        for group in try([azapi_resource.private_dns_zone_groups[key]], []) : {
+          id                   = group.id
+          name                 = group.name
+          private_dns_zone_ids = tolist(var.private_endpoints[key].private_dns_zone_resource_ids)
+        }
+      ]
+      private_service_connection = [
+        {
+          is_manual_connection           = false
+          name                           = local.private_endpoints[key].body.properties.privateLinkServiceConnections[0].name
+          private_connection_resource_id = azurerm_servicebus_namespace.this.id
+          private_ip_address             = data.azapi_resource.private_endpoint_network_interfaces[key].output.private_ip_address
+          subresource_names              = tolist(local.private_endpoints[key].body.properties.privateLinkServiceConnections[0].properties.groupIds)
+        }
+      ]
+      resource_group_name = coalesce(var.private_endpoints[key].resource_group_name, var.resource_group_name)
+      subnet_id           = var.private_endpoints[key].subnet_resource_id
+      tags                = endpoint.tags
+    }
+  }
 }
 
 output "resource_private_endpoints_application_security_group_association" {
   description = "The private endpoint application security group associations created"
-  value       = azurerm_private_endpoint_application_security_group_association.this
+  # The application security groups are part of each private endpoint's body. The AzureRM attribute names
+  # and ID format are kept so that existing references keep working.
+  value = {
+    for key, association in local.private_endpoint_application_security_group_associations : key => {
+      application_security_group_id = association.asg_resource_id
+      id                            = "${local.private_endpoint_resources[association.pe_key].id}|${association.asg_resource_id}"
+      private_endpoint_id           = local.private_endpoint_resources[association.pe_key].id
+    }
+  }
 }
 
 output "resource_queues" {

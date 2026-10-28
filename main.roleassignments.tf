@@ -28,8 +28,8 @@ locals {
     for key, assignment in local.total_role_assignments : key => (
       assignment.scope_type == local.queue_scope_type ? try(azurerm_servicebus_queue.base_queues[assignment.queue_name].id, azurerm_servicebus_queue.forward_queues[assignment.queue_name].id) :
       assignment.scope_type == local.topic_scope_type ? azurerm_servicebus_topic.this[assignment.topic_name].id :
-      assignment.scope_type == local.private_endpoint_scope_type && var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this_managed_dns_zone_groups[assignment.pe_name].id :
-      assignment.scope_type == local.private_endpoint_scope_type ? azurerm_private_endpoint.this_unmanaged_dns_zone_groups[assignment.pe_name].id :
+      assignment.scope_type == local.private_endpoint_scope_type && var.private_endpoints_manage_dns_zone_group ? azapi_resource.private_endpoints[assignment.pe_name].id :
+      assignment.scope_type == local.private_endpoint_scope_type ? azapi_resource.private_endpoints_unmanaged_dns_zone_groups[assignment.pe_name].id :
       azurerm_servicebus_namespace.this.id
     )
   }
