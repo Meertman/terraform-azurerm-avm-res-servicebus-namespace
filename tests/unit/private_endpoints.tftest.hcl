@@ -1,4 +1,18 @@
 override_resource {
+  target = azapi_resource.base_queues
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/queues/test-queue"
+  }
+}
+
+override_resource {
+  target = azapi_resource.topics
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/topics/test-topic"
+  }
+}
+
+override_resource {
   target = azapi_resource.this
   values = {
     id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace"
@@ -13,16 +27,6 @@ override_resource {
 mock_provider "azurerm" {
   alias = "mock"
 
-  mock_resource "azurerm_servicebus_queue" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/queues/test-queue"
-    }
-  }
-  mock_resource "azurerm_servicebus_topic" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/topics/test-topic"
-    }
-  }
 }
 
 mock_provider "azapi" {
@@ -429,8 +433,8 @@ run "legacy_child_role_assignment_shapes" {
   assert {
     condition = (
       length(output.resource_role_assignments) == 2 &&
-      output.resource_role_assignments["Queue|contributor|queue"].scope == azurerm_servicebus_queue.base_queues["queue"].id &&
-      output.resource_role_assignments["Topic|contributor|topic"].scope == azurerm_servicebus_topic.this["topic"].id &&
+      output.resource_role_assignments["Queue|contributor|queue"].scope == azapi_resource.base_queues["queue"].id &&
+      output.resource_role_assignments["Topic|contributor|topic"].scope == azapi_resource.topics["topic"].id &&
       output.resource_role_assignments["Queue|contributor|queue"].principal_id == "00000000-0000-0000-0000-000000000002" &&
       output.resource_role_assignments["Topic|contributor|topic"].principal_id == "00000000-0000-0000-0000-000000000002"
     )

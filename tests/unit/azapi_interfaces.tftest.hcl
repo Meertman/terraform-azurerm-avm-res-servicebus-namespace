@@ -1,4 +1,18 @@
 override_resource {
+  target = azapi_resource.base_queues
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/queues/orders"
+  }
+}
+
+override_resource {
+  target = azapi_resource.topics
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/topics/events"
+  }
+}
+
+override_resource {
   target = azapi_resource.this
   values = {
     id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace"
@@ -10,18 +24,7 @@ override_resource {
   }
 }
 
-mock_provider "azurerm" {
-  mock_resource "azurerm_servicebus_queue" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/queues/orders"
-    }
-  }
-  mock_resource "azurerm_servicebus_topic" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/topics/events"
-    }
-  }
-}
+mock_provider "azurerm" {}
 
 mock_provider "azapi" {
   mock_data "azapi_client_config" {

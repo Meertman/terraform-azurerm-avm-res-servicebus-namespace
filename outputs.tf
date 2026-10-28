@@ -175,13 +175,53 @@ output "resource_private_endpoints_application_security_group_association" {
 
 output "resource_queues" {
   description = "The service bus queues created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint_application_security_group_association#attributes-reference"
-  value       = merge(azurerm_servicebus_queue.base_queues, azurerm_servicebus_queue.forward_queues)
+  # The AzureRM attribute names are kept so that existing references keep working. Values Azure fills in
+  # are read back from Azure, as the AzureRM provider did.
+  value = {
+    for name, queue in local.queue_resources : name => {
+      auto_delete_on_idle                     = try(queue.output.properties.autoDeleteOnIdle, local.queue_bodies[name].properties.autoDeleteOnIdle)
+      batched_operations_enabled              = local.queue_bodies[name].properties.enableBatchedOperations
+      dead_lettering_on_message_expiration    = local.queue_bodies[name].properties.deadLetteringOnMessageExpiration
+      default_message_ttl                     = try(queue.output.properties.defaultMessageTimeToLive, local.queue_bodies[name].properties.defaultMessageTimeToLive)
+      duplicate_detection_history_time_window = local.queue_bodies[name].properties.duplicateDetectionHistoryTimeWindow
+      express_enabled                         = local.queue_bodies[name].properties.enableExpress
+      forward_dead_lettered_messages_to       = local.queue_bodies[name].properties.forwardDeadLetteredMessagesTo
+      forward_to                              = local.queue_bodies[name].properties.forwardTo
+      id                                      = queue.id
+      lock_duration                           = local.queue_bodies[name].properties.lockDuration
+      max_delivery_count                      = local.queue_bodies[name].properties.maxDeliveryCount
+      max_message_size_in_kilobytes           = try(queue.output.properties.maxMessageSizeInKilobytes, local.queue_bodies[name].properties.maxMessageSizeInKilobytes)
+      max_size_in_megabytes                   = local.queue_bodies[name].properties.maxSizeInMegabytes
+      name                                    = queue.name
+      namespace_id                            = azapi_resource.this.id
+      partitioning_enabled                    = local.queue_bodies[name].properties.enablePartitioning
+      requires_duplicate_detection            = local.queue_bodies[name].properties.requiresDuplicateDetection
+      requires_session                        = local.queue_bodies[name].properties.requiresSession
+      status                                  = local.queue_bodies[name].properties.status
+    }
+  }
 }
 
 output "resource_queues_authorization_rules" {
   description = "The service bus queues authorization rules created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/servicebus_queue_authorization_rule#attributes-reference"
   sensitive   = true
-  value       = azurerm_servicebus_queue_authorization_rule.this
+  # The AzureRM attribute names are kept so that existing references keep working, including the keys.
+  value = {
+    for key, rule in azapi_resource.queue_authorization_rules : key => {
+      id                                = rule.id
+      listen                            = local.queue_rules[key].rule_params.manage ? true : local.queue_rules[key].rule_params.listen
+      manage                            = local.queue_rules[key].rule_params.manage
+      name                              = rule.name
+      primary_connection_string         = try(data.azapi_resource_action.queue_authorization_rule_keys[key].sensitive_output.primaryConnectionString, null)
+      primary_connection_string_alias   = try(data.azapi_resource_action.queue_authorization_rule_keys[key].sensitive_output.aliasPrimaryConnectionString, null)
+      primary_key                       = try(data.azapi_resource_action.queue_authorization_rule_keys[key].sensitive_output.primaryKey, null)
+      queue_id                          = local.queue_resources[local.queue_rules[key].queue_name].id
+      secondary_connection_string       = try(data.azapi_resource_action.queue_authorization_rule_keys[key].sensitive_output.secondaryConnectionString, null)
+      secondary_connection_string_alias = try(data.azapi_resource_action.queue_authorization_rule_keys[key].sensitive_output.aliasSecondaryConnectionString, null)
+      secondary_key                     = try(data.azapi_resource_action.queue_authorization_rule_keys[key].sensitive_output.secondaryKey, null)
+      send                              = local.queue_rules[key].rule_params.manage ? true : local.queue_rules[key].rule_params.send
+    }
+  }
 }
 
 output "resource_role_assignments" {
@@ -204,16 +244,69 @@ output "resource_role_assignments" {
 
 output "resource_topics" {
   description = "The service bus topics created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/servicebus_topic.html#attributes-reference"
-  value       = azurerm_servicebus_topic.this
+  # The AzureRM attribute names are kept so that existing references keep working.
+  value = {
+    for name, topic in azapi_resource.topics : name => {
+      auto_delete_on_idle                     = topic.body.properties.autoDeleteOnIdle
+      batched_operations_enabled              = topic.body.properties.enableBatchedOperations
+      default_message_ttl                     = topic.body.properties.defaultMessageTimeToLive
+      duplicate_detection_history_time_window = topic.body.properties.duplicateDetectionHistoryTimeWindow
+      express_enabled                         = topic.body.properties.enableExpress
+      id                                      = topic.id
+      max_message_size_in_kilobytes           = try(topic.output.properties.maxMessageSizeInKilobytes, topic.body.properties.maxMessageSizeInKilobytes)
+      max_size_in_megabytes                   = topic.body.properties.maxSizeInMegabytes
+      name                                    = topic.name
+      namespace_id                            = azapi_resource.this.id
+      partitioning_enabled                    = topic.body.properties.enablePartitioning
+      requires_duplicate_detection            = topic.body.properties.requiresDuplicateDetection
+      status                                  = topic.body.properties.status
+      support_ordering                        = topic.body.properties.supportOrdering
+    }
+  }
 }
 
 output "resource_topics_authorization_rules" {
   description = "The service bus topics authorization rules created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/servicebus_topic_authorization_rule#attributes-reference"
   sensitive   = true
-  value       = azurerm_servicebus_topic_authorization_rule.this
+  # The AzureRM attribute names are kept so that existing references keep working, including the keys.
+  value = {
+    for key, rule in azapi_resource.topic_authorization_rules : key => {
+      id                                = rule.id
+      listen                            = local.topic_rules[key].rule_params.manage ? true : local.topic_rules[key].rule_params.listen
+      manage                            = local.topic_rules[key].rule_params.manage
+      name                              = rule.name
+      primary_connection_string         = try(data.azapi_resource_action.topic_authorization_rule_keys[key].sensitive_output.primaryConnectionString, null)
+      primary_connection_string_alias   = try(data.azapi_resource_action.topic_authorization_rule_keys[key].sensitive_output.aliasPrimaryConnectionString, null)
+      primary_key                       = try(data.azapi_resource_action.topic_authorization_rule_keys[key].sensitive_output.primaryKey, null)
+      topic_id                          = azapi_resource.topics[local.topic_rules[key].topic_name].id
+      secondary_connection_string       = try(data.azapi_resource_action.topic_authorization_rule_keys[key].sensitive_output.secondaryConnectionString, null)
+      secondary_connection_string_alias = try(data.azapi_resource_action.topic_authorization_rule_keys[key].sensitive_output.aliasSecondaryConnectionString, null)
+      secondary_key                     = try(data.azapi_resource_action.topic_authorization_rule_keys[key].sensitive_output.secondaryKey, null)
+      send                              = local.topic_rules[key].rule_params.manage ? true : local.topic_rules[key].rule_params.send
+    }
+  }
 }
 
 output "resource_topics_subscriptions" {
   description = "The service bus topic subscriptions created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/servicebus_subscription#attributes-reference"
-  value       = merge(azurerm_servicebus_subscription.base_topics, azurerm_servicebus_subscription.forward_topics)
+  # The AzureRM attribute names are kept so that existing references keep working.
+  value = {
+    for key, subscription in local.subscription_resources : key => {
+      auto_delete_on_idle                       = local.subscription_bodies[key].properties.autoDeleteOnIdle
+      batched_operations_enabled                = local.subscription_bodies[key].properties.enableBatchedOperations
+      client_scoped_subscription_enabled        = false
+      dead_lettering_on_filter_evaluation_error = local.subscription_bodies[key].properties.deadLetteringOnFilterEvaluationExceptions
+      dead_lettering_on_message_expiration      = local.subscription_bodies[key].properties.deadLetteringOnMessageExpiration
+      default_message_ttl                       = local.subscription_bodies[key].properties.defaultMessageTimeToLive
+      forward_dead_lettered_messages_to         = local.subscription_bodies[key].properties.forwardDeadLetteredMessagesTo
+      forward_to                                = local.subscription_bodies[key].properties.forwardTo
+      id                                        = subscription.id
+      lock_duration                             = local.subscription_bodies[key].properties.lockDuration
+      max_delivery_count                        = local.subscription_bodies[key].properties.maxDeliveryCount
+      name                                      = subscription.name
+      requires_session                          = local.subscription_bodies[key].properties.requiresSession
+      status                                    = local.subscription_bodies[key].properties.status
+      topic_id                                  = azapi_resource.topics[local.topic_subscriptions[key].topic_name].id
+    }
+  }
 }

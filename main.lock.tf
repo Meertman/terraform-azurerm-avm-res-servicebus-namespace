@@ -42,8 +42,8 @@ resource "time_sleep" "lock_removal" {
   depends_on = [
     azapi_resource.this, azapi_resource.network_rule_set,
     azapi_resource.authorization_rules,
-    azurerm_servicebus_queue.base_queues, azurerm_servicebus_queue.forward_queues, azurerm_servicebus_queue_authorization_rule.this,
-    azurerm_servicebus_topic.this, azurerm_servicebus_topic_authorization_rule.this, azurerm_servicebus_subscription.base_topics, azurerm_servicebus_subscription.forward_topics,
+    azapi_resource.base_queues, azapi_resource.forward_queues, azapi_resource.queue_authorization_rules,
+    azapi_resource.topics, azapi_resource.topic_authorization_rules, azapi_resource.base_topics, azapi_resource.forward_topics,
 
     azapi_resource.diagnostic_settings, azapi_resource.role_assignments,
     azapi_resource.private_dns_zone_groups,
