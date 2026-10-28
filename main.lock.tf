@@ -5,7 +5,7 @@ resource "azapi_resource" "lock" {
   parent_id = (
     each.value.scope_type == local.private_endpoint_scope_type && var.private_endpoints_manage_dns_zone_group ? azapi_resource.private_endpoints[each.value.pe_name].id :
     each.value.scope_type == local.private_endpoint_scope_type ? azapi_resource.private_endpoints_unmanaged_dns_zone_groups[each.value.pe_name].id :
-    azurerm_servicebus_namespace.this.id
+    azapi_resource.this.id
   )
   type = "Microsoft.Authorization/locks@2020-05-01"
   body = {
@@ -40,8 +40,8 @@ resource "time_sleep" "lock_removal" {
   destroy_duration = "30s"
 
   depends_on = [
-    azurerm_servicebus_namespace.this,
-    azurerm_servicebus_namespace_authorization_rule.this,
+    azapi_resource.this, azapi_resource.network_rule_set,
+    azapi_resource.authorization_rules,
     azurerm_servicebus_queue.base_queues, azurerm_servicebus_queue.forward_queues, azurerm_servicebus_queue_authorization_rule.this,
     azurerm_servicebus_topic.this, azurerm_servicebus_topic_authorization_rule.this, azurerm_servicebus_subscription.base_topics, azurerm_servicebus_subscription.forward_topics,
 

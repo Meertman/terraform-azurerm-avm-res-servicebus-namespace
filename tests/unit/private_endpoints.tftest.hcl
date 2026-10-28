@@ -1,11 +1,18 @@
+override_resource {
+  target = azapi_resource.this
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace"
+    output = {
+      properties = {
+        serviceBusEndpoint = "https://test-namespace.servicebus.windows.net:443/"
+      }
+    }
+  }
+}
+
 mock_provider "azurerm" {
   alias = "mock"
 
-  mock_resource "azurerm_servicebus_namespace" {
-    defaults = {
-      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace"
-    }
-  }
   mock_resource "azurerm_servicebus_queue" {
     defaults = {
       id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.ServiceBus/namespaces/test-namespace/queues/test-queue"

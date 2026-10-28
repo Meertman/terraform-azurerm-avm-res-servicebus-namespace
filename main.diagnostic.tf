@@ -17,7 +17,7 @@ locals {
 data "azapi_resource_list" "diagnostic_categories" {
   count = length(var.diagnostic_settings) > 0 ? 1 : 0
 
-  parent_id = azurerm_servicebus_namespace.this.id
+  parent_id = azapi_resource.this.id
   type      = "Microsoft.Insights/diagnosticSettingsCategories@2021-05-01-preview"
   response_export_values = {
     categories = "value[].{name: name, category_type: properties.categoryType, groups: properties.categoryGroups}"
@@ -28,7 +28,7 @@ resource "azapi_resource" "diagnostic_settings" {
   for_each = var.diagnostic_settings
 
   name      = coalesce(each.value.name, "diag-${var.name}")
-  parent_id = azurerm_servicebus_namespace.this.id
+  parent_id = azapi_resource.this.id
   type      = "Microsoft.Insights/diagnosticSettings@2021-05-01-preview"
   body = {
     properties = {

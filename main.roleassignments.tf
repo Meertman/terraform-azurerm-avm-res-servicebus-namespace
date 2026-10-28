@@ -30,7 +30,7 @@ locals {
       assignment.scope_type == local.topic_scope_type ? azurerm_servicebus_topic.this[assignment.topic_name].id :
       assignment.scope_type == local.private_endpoint_scope_type && var.private_endpoints_manage_dns_zone_group ? azapi_resource.private_endpoints[assignment.pe_name].id :
       assignment.scope_type == local.private_endpoint_scope_type ? azapi_resource.private_endpoints_unmanaged_dns_zone_groups[assignment.pe_name].id :
-      azurerm_servicebus_namespace.this.id
+      azapi_resource.this.id
     )
   }
 }

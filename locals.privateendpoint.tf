@@ -40,7 +40,7 @@ locals {
                 name = coalesce(endpoint.private_service_connection_name, "pse-${var.name}")
                 properties = {
                   groupIds             = [coalesce(endpoint.subresource_name, local.service_name)]
-                  privateLinkServiceId = azurerm_servicebus_namespace.this.id
+                  privateLinkServiceId = azapi_resource.this.id
                 }
               }
             ]

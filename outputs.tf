@@ -1,13 +1,77 @@
 output "resource" {
   description = "The service bus namespace created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/servicebus_namespace.html#attributes-reference"
   sensitive   = true
-  value       = azurerm_servicebus_namespace.this
+  # The AzureRM attribute names are kept so that existing references keep working, including the keys
+  # of the default authorization rule.
+  value = {
+    capacity = local.normalized_capacity
+    customer_managed_key = var.sku == local.premium_sku_name && var.customer_managed_key != null ? [
+      {
+        identity_id                       = var.customer_managed_key.user_assigned_identity.resource_id
+        infrastructure_encryption_enabled = var.infrastructure_encryption_enabled
+        key_vault_key_id                  = local.normalized_cmk_key_url
+      }
+    ] : []
+    default_primary_connection_string   = try(data.azapi_resource_action.default_keys[0].sensitive_output.primaryConnectionString, null)
+    default_primary_key                 = try(data.azapi_resource_action.default_keys[0].sensitive_output.primaryKey, null)
+    default_secondary_connection_string = try(data.azapi_resource_action.default_keys[0].sensitive_output.secondaryConnectionString, null)
+    default_secondary_key               = try(data.azapi_resource_action.default_keys[0].sensitive_output.secondaryKey, null)
+    endpoint                            = try(azapi_resource.this.output.properties.serviceBusEndpoint, null)
+    id                                  = azapi_resource.this.id
+    identity = [
+      for identity in azapi_resource.this.identity : {
+        identity_ids = identity.identity_ids
+        principal_id = identity.principal_id
+        tenant_id    = identity.tenant_id
+        type         = identity.type
+      }
+    ]
+    local_auth_enabled  = var.local_auth_enabled
+    location            = azapi_resource.this.location
+    minimum_tls_version = var.minimum_tls_version
+    name                = azapi_resource.this.name
+    network_rule_set = [
+      {
+        default_action = var.network_rule_config.default_action
+        ip_rules       = var.network_rule_config.cidr_or_ip_rules
+        network_rules = [
+          for network_rule in(var.sku == local.premium_sku_name ? var.network_rule_config.network_rules : []) : {
+            ignore_missing_vnet_service_endpoint = false
+            subnet_id                            = network_rule.subnet_id
+          }
+        ]
+        public_network_access_enabled = var.public_network_access_enabled
+        trusted_services_allowed      = var.network_rule_config.trusted_services_allowed
+      }
+    ]
+    premium_messaging_partitions  = local.normalized_premium_messaging_partitions
+    public_network_access_enabled = var.public_network_access_enabled
+    resource_group_name           = var.resource_group_name
+    sku                           = var.sku
+    tags                          = azapi_resource.this.tags
+  }
 }
 
 output "resource_authorization_rules" {
   description = "The service bus namespace authorization rules created. More info: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/servicebus_namespace_authorization_rule#attributes-reference"
   sensitive   = true
-  value       = azurerm_servicebus_namespace_authorization_rule.this
+  # The AzureRM attribute names are kept so that existing references keep working, including the keys.
+  value = {
+    for key, rule in azapi_resource.authorization_rules : key => {
+      id                                = rule.id
+      listen                            = var.authorization_rules[key].manage ? true : var.authorization_rules[key].listen
+      manage                            = var.authorization_rules[key].manage
+      name                              = rule.name
+      namespace_id                      = azapi_resource.this.id
+      primary_connection_string         = try(data.azapi_resource_action.authorization_rule_keys[key].sensitive_output.primaryConnectionString, null)
+      primary_connection_string_alias   = try(data.azapi_resource_action.authorization_rule_keys[key].sensitive_output.aliasPrimaryConnectionString, null)
+      primary_key                       = try(data.azapi_resource_action.authorization_rule_keys[key].sensitive_output.primaryKey, null)
+      secondary_connection_string       = try(data.azapi_resource_action.authorization_rule_keys[key].sensitive_output.secondaryConnectionString, null)
+      secondary_connection_string_alias = try(data.azapi_resource_action.authorization_rule_keys[key].sensitive_output.aliasSecondaryConnectionString, null)
+      secondary_key                     = try(data.azapi_resource_action.authorization_rule_keys[key].sensitive_output.secondaryKey, null)
+      send                              = var.authorization_rules[key].manage ? true : var.authorization_rules[key].send
+    }
+  }
 }
 
 output "resource_diagnostic_settings" {
@@ -28,7 +92,7 @@ output "resource_diagnostic_settings" {
 
 output "resource_id" {
   description = "The resource ID of the service bus namespace created."
-  value       = azurerm_servicebus_namespace.this.id
+  value       = azapi_resource.this.id
 }
 
 output "resource_locks" {
@@ -84,7 +148,7 @@ output "resource_private_endpoints" {
         {
           is_manual_connection           = false
           name                           = local.private_endpoints[key].body.properties.privateLinkServiceConnections[0].name
-          private_connection_resource_id = azurerm_servicebus_namespace.this.id
+          private_connection_resource_id = azapi_resource.this.id
           private_ip_address             = data.azapi_resource.private_endpoint_network_interfaces[key].output.private_ip_address
           subresource_names              = tolist(local.private_endpoints[key].body.properties.privateLinkServiceConnections[0].properties.groupIds)
         }
