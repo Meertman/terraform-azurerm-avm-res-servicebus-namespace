@@ -40,7 +40,7 @@ resource "time_sleep" "lock_removal" {
   destroy_duration = "30s"
 
   depends_on = [
-    azapi_resource.this, azapi_resource.network_rule_set,
+    azapi_resource.this, azapi_update_resource.network_rule_set,
     azapi_resource.authorization_rules,
     azapi_resource.base_queues, azapi_resource.forward_queues, azapi_resource.queue_authorization_rules,
     azapi_resource.topics, azapi_resource.topic_authorization_rules, azapi_resource.base_topics, azapi_resource.forward_topics,

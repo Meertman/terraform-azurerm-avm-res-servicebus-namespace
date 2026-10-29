@@ -80,35 +80,37 @@ moved {
   to   = azapi_resource.this
 }
 
-# The AzureRM provider wrote the network rule set with a separate request after the namespace, for every
-# SKU. It is a child resource here; on upgrade it is written again with the same rules.
-resource "azapi_resource" "network_rule_set" {
+# Every namespace has a default network rule set, which the AzureRM provider wrote with a separate
+# request after the namespace. It always exists, so it is updated in place rather than created: an
+# `azapi_resource` would stop with "Resource already exists". Destroying this resource leaves the rule
+# set as it is, and Azure removes it with the namespace.
+resource "azapi_update_resource" "network_rule_set" {
   name      = "default"
   parent_id = azapi_resource.this.id
   type      = "Microsoft.ServiceBus/namespaces/networkRuleSets@2024-01-01"
   body = {
     properties = {
       defaultAction = var.network_rule_config.default_action
-      # Empty rule lists were left out by the AzureRM provider, which also clears them on Azure.
-      ipRules = length(var.network_rule_config.cidr_or_ip_rules) > 0 ? [
+      # Empty lists are sent rather than left out, because the body is merged into the existing rule
+      # set and a missing list would keep the rules that are already there.
+      ipRules = [
         for ip_rule in var.network_rule_config.cidr_or_ip_rules : {
           action = "Allow"
           ipMask = ip_rule
         }
-      ] : null
+      ]
       publicNetworkAccess         = var.public_network_access_enabled ? "Enabled" : "Disabled"
       trustedServiceAccessEnabled = var.network_rule_config.trusted_services_allowed
-      virtualNetworkRules = var.sku == local.premium_sku_name && length(var.network_rule_config.network_rules) > 0 ? [
-        for network_rule in var.network_rule_config.network_rules : {
+      virtualNetworkRules = [
+        for network_rule in(var.sku == local.premium_sku_name ? var.network_rule_config.network_rules : []) : {
           ignoreMissingVnetServiceEndpoint = false
           subnet = {
             id = network_rule.subnet_id
           }
         }
-      ] : null
+      ]
     }
   }
-  ignore_null_property   = true
   response_export_values = []
 
   dynamic "timeouts" {
