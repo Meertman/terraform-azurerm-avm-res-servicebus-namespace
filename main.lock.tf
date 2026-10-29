@@ -40,7 +40,7 @@ resource "time_sleep" "lock_removal" {
   destroy_duration = "30s"
 
   depends_on = [
-    azapi_resource.this, azapi_resource.network_rule_set,
+    azapi_resource.this, azapi_update_resource.network_rule_set,
     azapi_resource.authorization_rules,
     azurerm_servicebus_queue.base_queues, azurerm_servicebus_queue.forward_queues, azurerm_servicebus_queue_authorization_rule.this,
     azurerm_servicebus_topic.this, azurerm_servicebus_topic_authorization_rule.this, azurerm_servicebus_subscription.base_topics, azurerm_servicebus_subscription.forward_topics,

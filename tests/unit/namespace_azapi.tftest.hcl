@@ -120,7 +120,7 @@ run "premium_body_with_customer_managed_key" {
   }
 
   assert {
-    condition = jsonencode(azapi_resource.network_rule_set.body.properties) == jsonencode({
+    condition = jsonencode(azapi_update_resource.network_rule_set.body.properties) == jsonencode({
       defaultAction               = "Deny"
       ipRules                     = [{ action = "Allow", ipMask = "10.0.0.0/24" }]
       publicNetworkAccess         = "Enabled"
@@ -161,7 +161,7 @@ run "standard_body_and_default_keys" {
   }
 
   assert {
-    condition     = azapi_resource.network_rule_set.body.properties.virtualNetworkRules == null && length(azapi_resource.network_rule_set.body.properties.ipRules) == 1
+    condition     = jsonencode(azapi_update_resource.network_rule_set.body.properties.virtualNetworkRules) == "[]" && length(azapi_update_resource.network_rule_set.body.properties.ipRules) == 1
     error_message = "Standard MUST send IP rules only."
   }
 
